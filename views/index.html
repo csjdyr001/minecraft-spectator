@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <title>minecraft-spectator</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/socket.io/4.5.0/socket.io.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/eruda/2.3.3/eruda.js"></script>
+    <script>eruda.init();</script>
+</head>
+<body>
+<h3>当你无聊但又不想玩Minecraft时，minecraft-spectator 或许是个不错的选择！它基于node.js，可以让你在浏览器上观看服务器中别人的游戏。</h3>
+<br>
+服务器类型：
+<select id="serverType">
+  <option value="java">JAVA版</option>
+  <option value="bedrock">基岩版</option>
+</select>
+<br>
+服务器IP：
+<input type="text" id="ip" value="127.0.0.1">
+<br>
+服务器端口：
+<input type="text" id="port" value="25565">
+<br>
+账号类型：
+<select id="auth">
+  <option value="microsoft">microsoft账号</option>
+  <option value="mojang" id="mojangAuth">mojang账号</option>
+</select>
+<br>
+你的mojang/microsoft账号名称：
+<input type="text" id="un" value="example@example.com">
+<br>
+你的mojang/microsoft账号密码：
+<input type="text" id="pwd" value="123456">
+<br>
+运行模式：
+<select id="mode">
+  <option value="nodejs">node.js(推荐)</option>
+  <option value="nodejs2js">node.js转js(实验性功能,可能导致网页崩溃)</option>
+</select>
+<br><br>
+<button onclick="start()" style="width:100%">现在就开始吧！</button>
+<br>
+<div id="serverInfo"></div>
+<br>
+随机玩家视图：
+<div id="playerView"></div>
+<br>
+<script>
+var socket = io('ws://127.0.0.1:3000');
+socket.on('message',function(data){
+    //console.log(data);
+    alert(data);
+})
+
+socket.on('connection', () => {
+  console.log('connection');
+})
+
+function start(){
+   const mode = getSelectValue($("mode"));
+   if(mode == "nodejs"){
+     let xhr = new XMLHttpRequest();
+     let url = "/spectator";
+     xhr.open("POST", url, true);
+     xhr.setRequestHeader("Content-Type", "application/json");
+     xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            //alert(xhr.responseText);
+            let result = JSON.parse(xhr.responseText);
+            if(result["succeed"] == true){
+              alert("成功：" + result["message"]);
+              $("iframe").src=result["message"];
+            }else{
+              alert("失败：" + result["message"]);
+            }
+        }else{
+          alert("请求后端失败");
+        }
+     };
+     let data = {};
+     data.ip = $("ip").value;
+     data.port = $("port").value;
+     data.password = $("pwd").value;
+     data.username = $("un").value;
+     data.type = getSelectValue($("serverType"));//java或bedrock
+     data.auth = getSelectValue($("auth"));//mojang或microsoft
+     xhr.send(JSON.stringify(data));
+   }else if(mode == "nodejs2js"){
+     let script = document.createElement("script");
+     script.setAttribute("src", "javascripts/index.bundle.js");
+     script.onload = function (){
+        nodejs2JsMode();
+     }
+     script.onerror = function (){
+        alert("js文件加载失败");
+     }
+     document.body.appendChild(script);
+   }
+}
+
+function $(id) {
+    return document.getElementById(id);
+}
+
+function getSelectValue(obj) {
+    let index = obj.selectedIndex;
+    return obj.options[index].value;
+}
+
+$("serverType").addEventListener('change', event => {
+  const serverType = getSelectValue($("serverType"));
+  if(serverType == "java"){
+    $("mojangAuth").disabled = false;
+    $("port").value = "25565";
+  }else if(serverType == "bedrock"){
+    $("mojangAuth").disabled = true;
+    $("port").value = "19132";
+  }
+});
+</script>
+</body>
+</html>
